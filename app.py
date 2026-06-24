@@ -4,6 +4,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_groq import ChatGroq
+import os
 
 # 1. Page Configuration
 st.set_page_config(page_title="SmartRetrieval", page_icon="📄", layout="wide")
@@ -22,26 +23,36 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 st.title("SmartRetrieval 📄")
 st.write("Your intelligent assistant for document storage and retrieval.")
 
-# 4. File Uploader (Moved to main screen so mobile users can see it easily!)
-uploaded_file = st.file_uploader("📁 Upload your PDF document here", type=["pdf"])
+# 4. File Uploader (NOW ACCEPTS MULTIPLE FILES!)
+uploaded_files = st.file_uploader("📁 Upload one or more PDF documents here", type=["pdf"], accept_multiple_files=True)
 
-if uploaded_file is not None:
-    # Save the uploaded file temporarily
-    with open("temp.pdf", "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    # Load and process the PDF
-    with st.spinner("AI is reading your document..."):
-        loader = PyPDFLoader("temp.pdf")
-        docs = loader.load()
+if uploaded_files:
+    # Load and process the PDFs
+    with st.spinner("AI is reading your document(s)..."):
+        all_docs = []
         
+        # Loop through every file uploaded
+        for uploaded_file in uploaded_files:
+            # Save the file temporarily
+            temp_path = "temp_" + uploaded_file.name
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
+            # Read the PDF and add it to our list
+            loader = PyPDFLoader(temp_path)
+            all_docs.extend(loader.load())
+            
+            # Clean up the temp file
+            os.remove(temp_path)
+        
+        # Split ALL the combined text into chunks
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        splits = text_splitter.split_documents(docs)
+        splits = text_splitter.split_documents(all_docs)
         
         # USE FASTEMBED
         embeddings = FastEmbedEmbeddings()
         
-        # USE IN-MEMORY VECTOR STORE
+        # USE IN-MEMORY VECTOR STORE (Now holds all the files!)
         vectorstore = InMemoryVectorStore.from_documents(documents=splits, embedding=embeddings)
         retriever = vectorstore.as_retriever()
         
@@ -51,9 +62,10 @@ if uploaded_file is not None:
         
     st.divider()
     st.subheader("Ask a Question")
+    st.success(f"{len(uploaded_files)} document(s) loaded! You can now ask questions.")
     
     # 5. Chat Input box
-    question = st.chat_input("Ask a question about your document...")
+    question = st.chat_input("Ask a question about your document(s)...")
     
     if question:
         with st.spinner("Thinking..."):
@@ -82,4 +94,4 @@ Answer:"""
                 st.write(response.content)
 else:
     # What to show when no document is uploaded yet
-    st.info("Please upload a PDF document to begin.")
+    st.info("Please upload one or more PDF documents to begin.")
