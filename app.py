@@ -1,4 +1,6 @@
 import streamlit as st
+import json
+from streamlit_google_auth import Authenticate
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
@@ -12,50 +14,61 @@ st.set_page_config(page_title="SmartRetrieval", page_icon="📄", layout="center
 # 2. Premium UI CSS Styling
 premium_style = """
     <style>
-    /* Hide Streamlit branding */
     #MainMenu, footer, header {visibility: hidden;}
-    
-    /* Center the main content */
-    .main .block-container {
-        max-width: 800px;
-        padding-top: 2rem;
-    }
-    
-    /* Slick Title Styling */
-    h1 {
-        font-weight: 800 !important;
-        letter-spacing: -0.5px;
-    }
-    
-    /* Chat message styling */
-    .stChatMessage {
-        border-radius: 12px;
-        border: 1px solid #333;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-        /* Make the file uploader look cleaner and dark */
-    .stFileUploader {
-        border-radius: 12px;
-        border: 1px dashed #4a4a4a;
-        padding: 25px;
-        background-color: #1e1e1e;
-    }
-    
-    /* Force the text inside to be white */
-    .stFileUploader p, .stFileUploader span {
-        color: #fafafa !important;
-    }
-    }
+    .main .block-container { max-width: 800px; padding-top: 2rem; }
+    h1 { font-weight: 800 !important; letter-spacing: -0.5px; }
+    .stChatMessage { border-radius: 12px; border: 1px solid #333; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .stFileUploader { border-radius: 12px; border: 1px dashed #4a4a4a; padding: 25px; background-color: #1e1e1e; }
+    .stFileUploader p, .stFileUploader span { color: #fafafa !important; }
     </style>
 """
 st.markdown(premium_style, unsafe_allow_html=True)
 
-# 3. Header Section
+# 3. Google Authentication Setup
+client_id = st.secrets["GOOGLE_CLIENT_ID"]
+client_secret = st.secrets["GOOGLE_CLIENT_SECRET"]
+redirect_uri = "https://zywwmgzrkhhnfk7fo7qv93.streamlit.app/component/streamlit_google_auth/login"
+
+secrets_dict = {
+    "web": {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "redirect_uris": [redirect_uri]
+    }
+}
+with open("client_secret.json", "w") as f:
+    json.dump(secrets_dict, f)
+
+authenticator = Authenticate(
+    secret_credentials_path='client_secret.json',
+    cookie_name='smartretrieval_auth',
+    cookie_key='super_secret_cookie_key_123',
+    redirect_uri=redirect_uri
+)
+
+# 4. Login Gate
+if not st.session_state.get('connected'):
+    authenticator.login()
+    if not st.session_state.get('connected'):
+        st.stop()
+
+# 5. Main App (Only runs if logged in)
+user_email = st.session_state.get('connected', {}).get('email', 'User')
+
+with st.sidebar:
+    st.write(f"Logged in as: {user_email}")
+    if st.button("Logout"):
+        authenticator.logout()
+        st.rerun()
+
+# Header Section
 st.markdown("<h1 style='text-align: center;'>SmartRetrieval 📄</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: gray;'>Enterprise AI for Document Storage & Retrieval</p>", unsafe_allow_html=True)
 st.write("")
 
-# 4. File Uploader
+# File Uploader
 uploaded_files = st.file_uploader("Upload your PDF documents to begin", type=["pdf"], accept_multiple_files=True)
 
 if uploaded_files:
@@ -83,7 +96,7 @@ if uploaded_files:
     st.success(f"✅ {len(uploaded_files)} document(s) loaded successfully!")
     st.divider()
     
-    # 5. Chat Interface
+    # Chat Interface
     question = st.chat_input("Ask a question about your document(s)...")
     
     if question:
@@ -109,5 +122,4 @@ Answer:"""
             with st.chat_message("assistant", avatar="🤖"):
                 st.write(response.content)
 else:
-    # Empty state when no document is uploaded
     st.info("⬆️ Upload one or more PDF files above to get started.")
