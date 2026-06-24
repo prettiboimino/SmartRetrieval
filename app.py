@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_groq import ChatGroq
 
@@ -43,18 +43,15 @@ if uploaded_file is not None:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(docs)
         
-        # PULL KEYS SECURELY FROM STREAMLIT SECRETS (No more public keys!)
-        hf_api_key = st.secrets["HF_API_KEY"]
-        groq_api_key = st.secrets["GROQ_API_KEY"]
-        
-        # USE HUGGINGFACE CLOUD API
-        embeddings = HuggingFaceInferenceAPIEmbeddings(api_key=hf_api_key, model_name="BAAI/bge-small-en-v1.5")
+        # USE FASTEMBED (No API key needed, ultra-stable on Streamlit!)
+        embeddings = FastEmbedEmbeddings()
         
         # USE IN-MEMORY VECTOR STORE
         vectorstore = InMemoryVectorStore.from_documents(documents=splits, embedding=embeddings)
         retriever = vectorstore.as_retriever()
         
-        # USE GROQ FOR THE AI BRAIN
+        # PULL GROQ KEY SECURELY FROM STREAMLIT SECRETS
+        groq_api_key = st.secrets["GROQ_API_KEY"]
         llm = ChatGroq(model="llama-3.1-8b-instant", groq_api_key=groq_api_key)
         
     st.divider()
