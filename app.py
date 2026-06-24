@@ -33,12 +33,18 @@ premium_style = """
         border: 1px solid #333;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    
-    /* Make the file uploader look cleaner */
+        /* Make the file uploader look cleaner and dark */
     .stFileUploader {
-        border-radius: 10px;
-        background-color: #f0f2f6;
-        padding: 20px;
+        border-radius: 12px;
+        border: 1px dashed #4a4a4a;
+        padding: 25px;
+        background-color: #1e1e1e;
+    }
+    
+    /* Force the text inside to be white */
+    .stFileUploader p, .stFileUploader span {
+        color: #fafafa !important;
+    }
     }
     </style>
 """
