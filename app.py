@@ -2,7 +2,7 @@ import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_groq import ChatGroq
 
 # 1. Page Configuration
@@ -43,15 +43,18 @@ if uploaded_file is not None:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(docs)
         
-        # USE HUGGINGFACE CLOUD API (Works perfectly on Streamlit servers!)
-        hf_api_key = "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"
+        # PULL KEYS SECURELY FROM STREAMLIT SECRETS (No more public keys!)
+        hf_api_key = st.secrets["HF_API_KEY"]
+        groq_api_key = st.secrets["GROQ_API_KEY"]
+        
+        # USE HUGGINGFACE CLOUD API
         embeddings = HuggingFaceInferenceAPIEmbeddings(api_key=hf_api_key, model_name="BAAI/bge-small-en-v1.5")
         
-        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
+        # USE IN-MEMORY VECTOR STORE
+        vectorstore = InMemoryVectorStore.from_documents(documents=splits, embedding=embeddings)
         retriever = vectorstore.as_retriever()
         
         # USE GROQ FOR THE AI BRAIN
-        groq_api_key = "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"
         llm = ChatGroq(model="llama-3.1-8b-instant", groq_api_key=groq_api_key)
         
     st.divider()
