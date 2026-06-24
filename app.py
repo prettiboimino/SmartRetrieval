@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
 
@@ -43,8 +43,9 @@ if uploaded_file is not None:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(docs)
         
-        # USE LOCAL HUGGINGFACE (No internet needed, fixes the Numpy crash!)
-        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        # USE HUGGINGFACE CLOUD API (Works perfectly on Streamlit servers!)
+        hf_api_key = "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"
+        embeddings = HuggingFaceInferenceAPIEmbeddings(api_key=hf_api_key, model_name="BAAI/bge-small-en-v1.5")
         
         vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
         retriever = vectorstore.as_retriever()
