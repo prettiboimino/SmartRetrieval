@@ -22,7 +22,7 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 with st.sidebar:
     st.title("📁 Document Upload")
     st.write("Upload your PDF below. The AI will read and store it securely.")
-    uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
+    uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
     if uploaded_file:
         st.success("Document Ready!")
 
