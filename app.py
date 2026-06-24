@@ -7,73 +7,84 @@ from langchain_groq import ChatGroq
 import os
 
 # 1. Page Configuration
-st.set_page_config(page_title="SmartRetrieval", page_icon="📄", layout="wide")
+st.set_page_config(page_title="SmartRetrieval", page_icon="📄", layout="centered", initial_sidebar_state="collapsed")
 
-# 2. Hide Streamlit default menus
-hide_st_style = """
+# 2. Premium UI CSS Styling
+premium_style = """
     <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    /* Hide Streamlit branding */
+    #MainMenu, footer, header {visibility: hidden;}
+    
+    /* Center the main content */
+    .main .block-container {
+        max-width: 800px;
+        padding-top: 2rem;
+    }
+    
+    /* Slick Title Styling */
+    h1 {
+        font-weight: 800 !important;
+        letter-spacing: -0.5px;
+    }
+    
+    /* Chat message styling */
+    .stChatMessage {
+        border-radius: 12px;
+        border: 1px solid #333;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    /* Make the file uploader look cleaner */
+    .stFileUploader {
+        border-radius: 10px;
+        background-color: #f0f2f6;
+        padding: 20px;
+    }
     </style>
 """
-st.markdown(hide_st_style, unsafe_allow_html=True)
+st.markdown(premium_style, unsafe_allow_html=True)
 
-# 3. Main Chat Area
-st.title("SmartRetrieval 📄")
-st.write("Your intelligent assistant for document storage and retrieval.")
+# 3. Header Section
+st.markdown("<h1 style='text-align: center;'>SmartRetrieval 📄</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>Enterprise AI for Document Storage & Retrieval</p>", unsafe_allow_html=True)
+st.write("")
 
-# 4. File Uploader (Accepts multiple files, mobile-friendly!)
-uploaded_files = st.file_uploader("📁 Upload one or more PDF documents here", type=["pdf"], accept_multiple_files=True)
+# 4. File Uploader
+uploaded_files = st.file_uploader("Upload your PDF documents to begin", type=["pdf"], accept_multiple_files=True)
 
 if uploaded_files:
     # Load and process the PDFs
     with st.spinner("AI is reading your document(s)..."):
         all_docs = []
-        
-        # Loop through every file uploaded
         for uploaded_file in uploaded_files:
-            # Save the file temporarily
             temp_path = "temp_" + uploaded_file.name
             with open(temp_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
-            
-            # Read the PDF and add it to our list
             loader = PyPDFLoader(temp_path)
             all_docs.extend(loader.load())
-            
-            # Clean up the temp file
             os.remove(temp_path)
         
-        # Split ALL the combined text into chunks
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(all_docs)
         
-        # USE FASTEMBED
         embeddings = FastEmbedEmbeddings()
-        
-        # USE IN-MEMORY VECTOR STORE (Holds all the files!)
         vectorstore = InMemoryVectorStore.from_documents(documents=splits, embedding=embeddings)
         retriever = vectorstore.as_retriever()
         
-        # PULL GROQ KEY SECURELY FROM STREAMLIT SECRETS
         groq_api_key = st.secrets["GROQ_API_KEY"]
         llm = ChatGroq(model="llama-3.1-8b-instant", groq_api_key=groq_api_key)
         
+    st.success(f"✅ {len(uploaded_files)} document(s) loaded successfully!")
     st.divider()
-    st.subheader("Ask a Question")
-    st.success(f"{len(uploaded_files)} document(s) loaded! You can now ask questions.")
     
-    # 5. Chat Input box
+    # 5. Chat Interface
     question = st.chat_input("Ask a question about your document(s)...")
     
     if question:
         with st.spinner("Thinking..."):
-            # Get the relevant chunks
             retrieved_docs = retriever.invoke(question)
             context_text = "\n\n".join([doc.page_content for doc in retrieved_docs])
             
-            # Create the prompt
             prompt = f"""You are a helpful assistant for a Ghanaian business. 
 Use the following pieces of retrieved context to answer the question. 
 If you don't know the answer, say that you don't know. 
@@ -84,14 +95,13 @@ Context:
 Question: {question}
 Answer:"""
             
-            # Get AI response and display it like a chat
             response = llm.invoke(prompt)
             
             with st.chat_message("user"):
                 st.write(question)
                 
-            with st.chat_message("assistant"):
+            with st.chat_message("assistant", avatar="🤖"):
                 st.write(response.content)
 else:
-    # What to show when no document is uploaded yet
-    st.info("Please upload one or more PDF documents to begin.")
+    # Empty state when no document is uploaded
+    st.info("⬆️ Upload one or more PDF files above to get started.")
