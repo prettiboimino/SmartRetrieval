@@ -18,17 +18,12 @@ hide_st_style = """
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
-# 3. Sidebar for uploading documents
-with st.sidebar:
-    st.title("📁 Document Upload")
-    st.write("Upload your PDF below. The AI will read and store it securely.")
-    uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
-    if uploaded_file:
-        st.success("Document Ready!")
-
-# 4. Main Chat Area
+# 3. Main Chat Area
 st.title("SmartRetrieval 📄")
 st.write("Your intelligent assistant for document storage and retrieval.")
+
+# 4. File Uploader (Moved to main screen so mobile users can see it easily!)
+uploaded_file = st.file_uploader("📁 Upload your PDF document here", type=["pdf"])
 
 if uploaded_file is not None:
     # Save the uploaded file temporarily
@@ -43,7 +38,7 @@ if uploaded_file is not None:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(docs)
         
-        # USE FASTEMBED (No API key needed, ultra-stable on Streamlit!)
+        # USE FASTEMBED
         embeddings = FastEmbedEmbeddings()
         
         # USE IN-MEMORY VECTOR STORE
@@ -87,4 +82,4 @@ Answer:"""
                 st.write(response.content)
 else:
     # What to show when no document is uploaded yet
-    st.info("Please upload a PDF document in the sidebar to begin.")
+    st.info("Please upload a PDF document to begin.")
