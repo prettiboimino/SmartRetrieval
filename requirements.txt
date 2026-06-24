@@ -5,5 +5,4 @@ langchain-groq
 langchain-text-splitters
 chromadb
 pypdf
-sentence-transformers
-numpy<2.0
+huggingface_hub
