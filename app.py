@@ -1,6 +1,4 @@
 import streamlit as st
-import json
-from streamlit_google_auth import Authenticate
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
@@ -24,51 +22,12 @@ premium_style = """
 """
 st.markdown(premium_style, unsafe_allow_html=True)
 
-# 3. Google Authentication Setup
-client_id = st.secrets["GOOGLE_CLIENT_ID"]
-client_secret = st.secrets["GOOGLE_CLIENT_SECRET"]
-redirect_uri = "https://zywwmgzrkhhnfk7fo7qv93.streamlit.app/component/streamlit_google_auth/login"
-
-secrets_dict = {
-    "web": {
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "redirect_uris": [redirect_uri]
-    }
-}
-with open("client_secret.json", "w") as f:
-    json.dump(secrets_dict, f)
-
-authenticator = Authenticate(
-    secret_credentials_path='client_secret.json',
-    cookie_name='smartretrieval_auth',
-    cookie_key='super_secret_cookie_key_123',
-    redirect_uri=redirect_uri
-)
-
-# 4. Login Gate
-if not st.session_state.get('connected'):
-    authenticator.login()
-    if not st.session_state.get('connected'):
-        st.stop()
-
-# 5. Main App (Only runs if logged in)
-user_email = st.session_state.get('connected', {}).get('email', 'User')
-
-with st.sidebar:
-    st.write(f"Logged in as: {user_email}")
-    if st.button("Logout"):
-        authenticator.logout()
-        st.rerun()
-
-# Header Section
+# 3. Header Section
 st.markdown("<h1 style='text-align: center;'>SmartRetrieval 📄</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: gray;'>Enterprise AI for Document Storage & Retrieval</p>", unsafe_allow_html=True)
 st.write("")
 
-# File Uploader
+# 4. File Uploader
 uploaded_files = st.file_uploader("Upload your PDF documents to begin", type=["pdf"], accept_multiple_files=True)
 
 if uploaded_files:
@@ -96,7 +55,7 @@ if uploaded_files:
     st.success(f"✅ {len(uploaded_files)} document(s) loaded successfully!")
     st.divider()
     
-    # Chat Interface
+    # 5. Chat Interface
     question = st.chat_input("Ask a question about your document(s)...")
     
     if question:
